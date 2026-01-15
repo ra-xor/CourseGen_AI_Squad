@@ -1,0 +1,5 @@
+{
+  "name": "CourseGen AI Squad",
+  "description": "A multi-agent system where an Orchestrator coordinates a Researcher, Judge, and Writer to generate comprehensive courses on any topic.",
+  "requestFramePermissions": []
+}
