@@ -84,7 +84,7 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center p-4 md:p-8">
       
       {/* Header Section */}
-      <div className="w-full max-w-4xl text-center mt-12 mb-16 fade-in">
+      <div className="w-full max-w-4xl text-center mt-12 mb-16 fade-in no-print">
         <h1 className="text-5xl md:text-6xl font-bold text-slate-900 tracking-tight mb-6">
           Turn any topic into a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">complete course.</span>
         </h1>
@@ -94,7 +94,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Input Section */}
-      <div className="w-full max-w-2xl relative group fade-in" style={{ zIndex: 50 }}>
+      <div className="w-full max-w-2xl relative group fade-in no-print" style={{ zIndex: 50 }}>
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
         <div className="relative flex items-center bg-white rounded-full shadow-xl p-2 pr-2 border border-slate-100">
             <input
@@ -132,19 +132,21 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <div className="w-full mt-12">
         {status !== AppStatus.IDLE && (
-            <>
+            <div className="no-print">
                 <AgentStatus status={status} />
                 <LogStream logs={logs} />
-            </>
+            </div>
         )}
 
         {course && (
-            <CourseDisplay course={course} sources={sources} />
+            <div className="print-content">
+                <CourseDisplay course={course} sources={sources} />
+            </div>
         )}
       </div>
 
       {/* Footer */}
-      <footer className="mt-20 py-8 text-center text-slate-400 text-sm">
+      <footer className="mt-20 py-8 text-center text-slate-400 text-sm no-print">
         <p>Powered by Google Gemini 3 Pro</p>
       </footer>
     </div>

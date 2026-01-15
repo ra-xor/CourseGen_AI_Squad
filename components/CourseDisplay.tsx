@@ -1,6 +1,6 @@
 import React from 'react';
 import { CourseContent } from '../types';
-import { BookOpen, CheckCircle, ExternalLink, Layers } from 'lucide-react';
+import { BookOpen, CheckCircle, ExternalLink, Layers, Download, Printer } from 'lucide-react';
 
 interface CourseDisplayProps {
   course: CourseContent;
@@ -8,15 +8,74 @@ interface CourseDisplayProps {
 }
 
 const CourseDisplay: React.FC<CourseDisplayProps> = ({ course, sources }) => {
+  
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadMarkdown = () => {
+    let md = `# ${course.title}\n\n`;
+    md += `**Introduction**\n\n${course.introduction}\n\n`;
+    md += `## Modules\n\n`;
+    course.modules.forEach((module, idx) => {
+        md += `### Module ${idx + 1}: ${module.title}\n\n`;
+        md += `${module.description}\n\n`;
+        md += `**Key Learning Points:**\n`;
+        module.keyPoints.forEach(point => {
+            md += `- ${point}\n`;
+        });
+        md += `\n`;
+    });
+    md += `## Summary\n\n${course.summary}\n\n`;
+    
+    if (sources && sources.length > 0) {
+        md += `## Sources\n\n`;
+        sources.forEach(chunk => {
+             const web = chunk.web;
+             if(web) {
+                 md += `- [${web.title}](${web.uri})\n`;
+             }
+        });
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${course.title.replace(/\s+/g, '_').toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 fade-in mt-8">
+    <div className="w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 fade-in mt-8 print-content">
       {/* Header */}
-      <div className="bg-slate-900 text-white p-10">
+      <div className="bg-slate-900 text-white p-10 relative">
+        {/* Export Actions - Hidden in Print */}
+        <div className="absolute top-6 right-6 flex gap-3 no-print">
+            <button 
+                onClick={handlePrint}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700"
+                title="Print / Save as PDF"
+            >
+                <Printer size={20} />
+            </button>
+            <button 
+                onClick={handleDownloadMarkdown}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-medium shadow-lg"
+            >
+                <Download size={18} />
+                <span>Export MD</span>
+            </button>
+        </div>
+
         <div className="flex items-center gap-3 text-blue-400 mb-4">
           <BookOpen size={24} />
           <span className="font-semibold tracking-wide uppercase text-sm">Comprehensive Course</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">{course.title}</h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight pr-0 md:pr-32">{course.title}</h1>
         <p className="text-slate-300 text-lg leading-relaxed max-w-2xl">{course.introduction}</p>
       </div>
 
