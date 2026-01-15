@@ -6,6 +6,7 @@ Instead of relying on a single prompt, this application orchestrates a team of s
 
 ![CourseGen AI Squad Interface](AppScreenshot.png)
 
+
 ## 🧠 System Architecture
 
 This project implements a **Sequential Multi-Agent Orchestration** pattern. A central Orchestrator manages the state and data flow between specialized instances of Google's Gemini 3 Pro model.
