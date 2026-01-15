@@ -4,7 +4,7 @@
 
 Instead of relying on a single prompt, this application orchestrates a team of specialized AI agents—a Researcher, a Judge, and a Writer—to collaborate, research real-time data, fact-check information, and structure a complete syllabus with learning modules.
 
-![App Screenshot Placeholder](https://via.placeholder.com/800x400?text=CourseGen+AI+Squad+Interface)
+![CourseGen AI Squad Interface](AppScreenshot.png)
 
 ## 🧠 System Architecture
 
@@ -67,8 +67,9 @@ The application expects the API key to be available in the environment:
 
 ### Running the App
 1.  Clone the repository.
-2.  Ensure your build environment (e.g., Vite, Parcel, or standard HTML/ESM setup) supports TypeScript and React.
-3.  Serve the application.
+2.  Save the screenshot as `screenshot.png` in the root directory.
+3.  Ensure your build environment (e.g., Vite, Parcel, or standard HTML/ESM setup) supports TypeScript and React.
+4.  Serve the application.
 
 ## 📄 License
 
