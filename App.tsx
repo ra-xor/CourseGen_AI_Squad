@@ -4,7 +4,7 @@ import * as geminiService from './services/gemini';
 import AgentStatus from './components/AgentStatus';
 import CourseDisplay from './components/CourseDisplay';
 import LogStream from './components/LogStream';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const App: React.FC = () => {
   const [topic, setTopic] = useState('');
@@ -36,31 +36,67 @@ const App: React.FC = () => {
       addLog(AgentRole.ORCHESTRATOR, `Initializing squad for topic: "${topic}"`, 'info');
       await new Promise(r => setTimeout(r, 800)); // UI pacing
       
-      // 2. Researcher Phase
-      addLog(AgentRole.ORCHESTRATOR, "Delegating task to Researcher Agent...", 'info');
-      addLog(AgentRole.RESEARCHER, "Analyzing topic and searching for comprehensive sources...", 'thinking');
-      
-      const researchResult = await geminiService.runResearcherAgent(topic);
-      setSources(researchResult.sources);
-      addLog(AgentRole.RESEARCHER, "Research complete. Data compiled and references indexed.", 'success');
-      addLog(AgentRole.RESEARCHER, `Found ${researchResult.sources.length} relevant sources.`, 'info');
-      await new Promise(r => setTimeout(r, 1000));
+      let iteration = 0;
+      const MAX_ITERATIONS = 3;
+      let isApproved = false;
+      let currentResearch = "";
+      let currentSources: any[] = [];
+      let lastFeedback: string | null = null;
+      let judgeResult = { isApproved: false, feedback: "" };
 
-      // 3. Judge Phase
-      setStatus(AppStatus.JUDGING);
-      addLog(AgentRole.ORCHESTRATOR, "Passing research data to Judge Agent for verification.", 'info');
-      addLog(AgentRole.JUDGE, "Reviewing research for accuracy, bias, and completeness...", 'thinking');
-      
-      const critiqueResult = await geminiService.runJudgeAgent(topic, researchResult.text);
-      addLog(AgentRole.JUDGE, "Evaluation complete. Feedback generated.", 'success');
-      await new Promise(r => setTimeout(r, 1000));
+      // LOOP: Research <-> Judge
+      while (!isApproved && iteration < MAX_ITERATIONS) {
+        iteration++;
+        
+        // --- RESEARCHER PHASE ---
+        setStatus(AppStatus.RESEARCHING);
+        if (iteration === 1) {
+            addLog(AgentRole.ORCHESTRATOR, "Delegating task to Researcher Agent...", 'info');
+            addLog(AgentRole.RESEARCHER, "Analyzing topic and searching for comprehensive sources...", 'thinking');
+        } else {
+            addLog(AgentRole.ORCHESTRATOR, `Iteration ${iteration}/${MAX_ITERATIONS}: Returning to Researcher for improvements.`, 'info');
+            addLog(AgentRole.RESEARCHER, `Refining research based on Judge's feedback: "${lastFeedback?.slice(0, 50)}..."`, 'thinking');
+        }
 
-      // 4. Writer Phase
+        const researchResult = await geminiService.runResearcherAgent(topic, currentResearch, lastFeedback);
+        currentResearch = researchResult.text;
+        // Merge or replace sources? Replacing is safer for relevance, but we could merge. 
+        // For simplicity, we use the latest groundings as they match the latest text.
+        currentSources = researchResult.sources; 
+        setSources(currentSources);
+        
+        addLog(AgentRole.RESEARCHER, "Research compilation complete.", 'success');
+        addLog(AgentRole.RESEARCHER, `Found ${researchResult.sources.length} sources.`, 'info');
+        await new Promise(r => setTimeout(r, 1000));
+
+        // --- JUDGE PHASE ---
+        setStatus(AppStatus.JUDGING);
+        addLog(AgentRole.ORCHESTRATOR, "Passing research to Judge for quality control.", 'info');
+        addLog(AgentRole.JUDGE, "Evaluating accuracy, completeness, and logic...", 'thinking');
+
+        judgeResult = await geminiService.runJudgeAgent(topic, currentResearch);
+        
+        if (judgeResult.isApproved) {
+            addLog(AgentRole.JUDGE, "Research APPROVED. Content meets quality standards.", 'success');
+            isApproved = true;
+        } else {
+            addLog(AgentRole.JUDGE, "Research REJECTED. Issues found.", 'error');
+            addLog(AgentRole.JUDGE, `Critique: ${judgeResult.feedback}`, 'info');
+            lastFeedback = judgeResult.feedback;
+            
+            if (iteration >= MAX_ITERATIONS) {
+                addLog(AgentRole.ORCHESTRATOR, "Max iterations reached. Proceeding with best available research.", 'info');
+            }
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      // --- WRITER PHASE ---
       setStatus(AppStatus.WRITING);
       addLog(AgentRole.ORCHESTRATOR, "Instructing Writer Agent to compile final course.", 'info');
       addLog(AgentRole.WRITER, "Structuring course modules based on verified research...", 'thinking');
       
-      const courseResult = await geminiService.runWriterAgent(topic, researchResult.text, critiqueResult);
+      const courseResult = await geminiService.runWriterAgent(topic, currentResearch, judgeResult.feedback);
       addLog(AgentRole.WRITER, "Course syllabus and content generated successfully.", 'success');
       
       setCourse(courseResult);

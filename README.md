@@ -4,9 +4,7 @@
 
 Instead of relying on a single prompt, this application orchestrates a team of specialized AI agents—a Researcher, a Judge, and a Writer—to collaborate, research real-time data, fact-check information, and structure a complete syllabus with learning modules.
 
-<img width="864" height="522" alt="CourseGen AI Squad Interface" src="https://github.com/user-attachments/assets/f093f090-209e-431e-b144-5f8d16c1a7b1" />
-
-
+![CourseGen AI Squad Interface](AppScreenshot.png)
 
 ## 🧠 System Architecture
 

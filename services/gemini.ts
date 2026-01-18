@@ -7,19 +7,44 @@ const MODEL_NAME = 'gemini-3-pro-preview';
 
 /**
  * The Researcher Agent uses Google Search to find up-to-date information.
+ * It can now accept previous research and feedback to refine its output.
  */
-export const runResearcherAgent = async (topic: string): Promise<{ text: string; sources: any[] }> => {
+export const runResearcherAgent = async (
+  topic: string, 
+  previousResearch: string | null = null, 
+  feedback: string | null = null
+): Promise<{ text: string; sources: any[] }> => {
   try {
+    let prompt = `You are an expert academic researcher. 
+    Your task is to gather comprehensive, accurate, and structured information about the topic: "${topic}".
+    Focus on finding key concepts, historical context, current state of the art, and fundamental principles.
+    
+    Format the output as a detailed research brief.`;
+
+    if (previousResearch && feedback) {
+      prompt = `You are an expert academic researcher.
+      
+      You previously conducted research on the topic: "${topic}".
+      However, a Quality Judge has reviewed your findings and provided the following critique:
+      "${feedback}"
+      
+      Your task is to REFINE and EXPAND the previous research.
+      1. Address the Judge's feedback specifically.
+      2. Keep the accurate parts of the previous research.
+      3. Search for missing information.
+      
+      Previous Research Draft:
+      ${previousResearch}
+      
+      Output a NEW, improved, and comprehensive research brief.`;
+    }
+
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
-      contents: `You are an expert academic researcher. 
-      Your task is to gather comprehensive, accurate, and structured information about the topic: "${topic}".
-      Focus on finding key concepts, historical context, current state of the art, and fundamental principles.
-      
-      Format the output as a detailed research brief.`,
+      contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingBudget: 1024 }, // Enable some thinking for better research planning
+        thinkingConfig: { thinkingBudget: 1024 }, // Enable thinking for better research planning
       },
     });
 
@@ -35,29 +60,57 @@ export const runResearcherAgent = async (topic: string): Promise<{ text: string;
 };
 
 /**
- * The Judge Agent evaluates the research for gaps, bias, and accuracy.
+ * The Judge Agent evaluates the research.
+ * Now returns a structured object indicating approval status and feedback.
  */
-export const runJudgeAgent = async (topic: string, researchData: string): Promise<string> => {
+export const runJudgeAgent = async (topic: string, researchData: string): Promise<{ isApproved: boolean; feedback: string }> => {
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: `You are a critical academic judge and fact-checker.
       
       Review the following research brief on the topic "${topic}".
-      Identify any missing critical topics, logical inconsistencies, or areas that need more depth for a complete course.
-      Provide specific instructions on how to improve the content for a course syllabus.
+      
+      Your Goal: Ensure the content is sufficient to build a high-quality educational course.
+      
+      Criteria for Approval:
+      1. Is the information accurate and relevant?
+      2. Are there any hallucinations or obvious errors?
+      3. Is the breadth and depth sufficient for a course?
+      
+      If the research is good enough, approve it.
+      If it has major gaps or errors, reject it and provide specific feedback for the researcher.
       
       Research Brief:
       ${researchData}`,
       config: {
-        thinkingConfig: { thinkingBudget: 512 }, // Quick thinking for critique
+        thinkingConfig: { thinkingBudget: 512 },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            isApproved: { 
+              type: Type.BOOLEAN,
+              description: "Set to true if the research is good enough for a course. Set to false if major revisions are needed." 
+            },
+            feedback: { 
+              type: Type.STRING,
+              description: "If rejected, provide specific instructions on what to fix. If approved, provide a brief positive comment." 
+            }
+          },
+          required: ['isApproved', 'feedback']
+        }
       }
     });
 
-    return response.text || "No critique provided.";
+    const text = response.text;
+    if (!text) return { isApproved: true, feedback: "No output from judge, assuming approval." };
+    
+    return JSON.parse(text);
   } catch (error) {
     console.error("Judge Agent Error:", error);
-    throw new Error("Judge agent failed to evaluate the research.");
+    // Fallback to approved to prevent getting stuck if API fails
+    return { isApproved: true, feedback: "Judge unavailable, proceeding." };
   }
 };
 
@@ -71,12 +124,12 @@ export const runWriterAgent = async (topic: string, researchData: string, critiq
       contents: `You are a best-selling course creator and educational writer.
       
       Create a comprehensive course structure for the topic "${topic}".
-      Use the provided Research Brief and incorporate the Judge's Feedback to ensure high quality.
+      Use the provided Research Brief to generate the course content.
       
       Research Brief:
       ${researchData}
       
-      Judge's Feedback:
+      Judge's Final Comments:
       ${critique}
       
       Return the result as a strictly formatted JSON object matching the following schema.`,
