@@ -3,8 +3,9 @@
 **CourseGen AI Squad** is a sophisticated multi-agent system designed to automatically generate comprehensive educational courses on any topic. 
 
 Instead of relying on a single prompt, this application orchestrates a team of specialized AI agents—a Researcher, a Judge, and a Writer—to collaborate, research real-time data, fact-check information, and structure a complete syllabus with learning modules.
+<img width="864" height="522" alt="AppScreenshot" src="https://github.com/user-attachments/assets/d9d92d28-f3d6-4fd2-af13-99f82db057c1" />
 
-![CourseGen AI Squad Interface](AppScreenshot.png)
+
 
 ## 🧠 System Architecture
 
